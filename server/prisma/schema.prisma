@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  matricula   String   @id
+  nome        String
+  cpf         String   @unique
+  telefone    String
+  email       String   @unique
+  senha       String
+  dataCriacao DateTime @default(now())
+
+  tipos       UsuarioTipo[] @relation("TipoParaUsuario")
+  Particpante Particpante?
+  Monitors    Monitor[]
+  Aluno       Aluno[]
+  Editais     Edital[]
+  Relatorio   Relatorio[]
+}
+
+model UsuarioTipo {
+  id_tipo   String @id @default(cuid())
+  tipo      String
+  descricao String
+
+  usuarios Usuario[] @relation("TipoParaUsuario")
+}
+
+model Curso {
+  id_curso String @id @default(cuid())
+  nome     String
+
+  cursoDisciplina Disciplina[] @relation()
+  cursoEdital     Edital[]
+  Turmas          Turma[]
+}
+
+model Disciplina {
+  id_disciplina String @id @default(cuid())
+  nome          String
+
+  disciplinaCurso  Curso[]  @relation()
+  desciplinaEdital Edital[]
+  Turmas           Turma[]
+}
+
+model Edital {
+  idEdital          String   @id @default(cuid())
+  vagas             Int
+  dataInscricao     String
+  descricaoEdital   String
+  cursoSigla        String
+  dataCriacaoEdital DateTime @default(now())
+  disciplinaId      String?  @unique
+  usuarioId         String
+
+  participanteId String?
+  editalCurso    Curso[]
+
+  usuarios           Usuario?     @relation(fields: [usuarioId], references: [matricula])
+  editalDisciplina   Disciplina?  @relation(fields: [disciplinaId], references: [id_disciplina])
+  participanteEdital Particpante? @relation(fields: [participanteId], references: [userId])
+}
+
+model Particpante {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  usuarios_part Usuario @relation(fields: [userId], references: [matricula], onDelete: Cascade)
+
+  edital Edital[]
+}
+
+model Monitor {
+  idMonitor  String @id @default(cuid())
+  usuariosId String
+
+  usuarios Usuario @relation(fields: [usuariosId], references: [matricula])
+  Turmas   Turma[]
+}
+
+model Turma {
+  idTurma     String @id @default(cuid())
+  codigo      String @unique
+  cursoId     String
+  discplinaId String
+  monitorId   String
+
+  cursos      Curso        @relation(fields: [cursoId], references: [id_curso])
+  disciplinas Disciplina   @relation(fields: [discplinaId], references: [id_disciplina])
+  monitores   Monitor      @relation(fields: [monitorId], references: [idMonitor])
+  Publicacao  Publicacao[]
+  Frequencia  Frequencia[]
+  Alunos      Aluno[]
+
+  @@unique([cursoId, discplinaId])
+}
+
+model Publicacao {
+  idPublicacao String   @id @default(cuid())
+  titulo       String
+  descricao    String
+  dtPublicao   DateTime @default(now())
+  turmaId      String?
+
+  Turmas Turma? @relation(fields: [turmaId], references: [codigo])
+}
+
+model Frequencia {
+  id              String   @id @default(cuid())
+  idFrequencia    String
+  dtRegistro      DateTime @default(now())
+  dtFrequencia    String
+  hrInicio        Int
+  hrFim           Int
+  ativDesepenhada String
+  observacao      String
+
+  turmas Turma @relation(fields: [idFrequencia], references: [codigo])
+}
+
+model Aluno {
+  idAlunos String @unique
+  turmasId String
+
+  usuarios Usuario @relation(fields: [idAlunos], references: [matricula])
+  turmas   Turma   @relation(fields: [turmasId], references: [codigo])
+
+  @@unique([idAlunos, turmasId])
+}
+
+model Relatorio {
+  usuarioId       String  @id
+  introducao      String
+  desenvolvimento String
+  conclusao       String
+  status          Boolean
+
+  usuarios Usuario @relation(fields: [usuarioId], references: [matricula])
+
+  @@unique([usuarioId])
+}
